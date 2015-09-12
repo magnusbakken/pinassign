@@ -1,4 +1,5 @@
 import cmd
+from distutils.util import strtobool
 
 from game_api import *
 
@@ -163,8 +164,9 @@ If a player has not played the recommended machine, you may need to manually fix
 This will remove all machines, players and scores from the running game.
 
 To reset only the scores, use the resetscores command instead."""
-        print(GAME_RESET)
-        self.game = Game()
+        if self._get_confirmation('Are you sure you want to reset the game?'):
+            self.game = Game()
+            print(GAME_RESET)
     
     def do_resetscores(self, s):
         """Resets the scores of a running game.
@@ -172,12 +174,30 @@ To reset only the scores, use the resetscores command instead."""
 This will remove all registered scores for the game, but machines and players will be kept.
 
 After running this command, machines may be added. The start command must be used again before new scores may be added."""
-        print(SCORES_RESET)
+        if self._get_confirmation('Are you sure you want to reset the scores?'):
+            try:
+                self.game.reset_scores()
+            except GameError as e:
+                print('Cannot reset scores: {}'.format(e))
+            else:
+                print(SCORES_RESET)
+
+    def do_assignments(self, s):
+        """Gets current assignments.
+
+This is only necessary when the playerready/machineready commands have been used manually. In other cases the assignments are given when a score is registered.
+
+This will only give current assignments. It will not repeat the previous ones."""
         try:
-            self.game.reset_scores()
+            assignments = list(self.game.assign())
         except GameError as e:
-            print('Cannot reset scores: {}'.format(e))
-    
+            print('Cannot get assignments: {}'.format(e))
+        else:
+            if assignments:
+                self._print_assignments(assignments)
+            else:
+                print('No new assignments available')
+
     def do_playerready(self, s):
         """Marks a player as ready.
 
@@ -187,9 +207,11 @@ For instance if, the algorithm recommended that Player1 play MachineA, but Playe
 
 You can also use this command if the player was marked as temporarily unable to play with the playerbusy command, and is now back in business."""
         try:
-            self.game.set_player_ready(True)
+            self.game.set_player_ready(s, True)
         except GameError as e:
             print('Cannot mark player as ready: {}'.format(e))
+        else:
+            print('Player {} has been marked as ready'.format(s))
     
     def do_playerbusy(self, s):
         """Marks a player as busy.
@@ -200,9 +222,11 @@ For instance if, the algorithm recommended that Player1 play MachineA, but Playe
 
 You can also use this command if the player is temporarily unable to play."""
         try:
-            self.game.set_player_ready(False)
+            self.game.set_player_ready(s, False)
         except GameError as e:
             print('Cannot mark player as busy: {}'.format(e))
+        else:
+            print('Player {} has been marked as busy'.format(s))
     
     def do_machineready(self, s):
         """Marks a machine as ready.
@@ -213,9 +237,11 @@ For instance if, the algorithm recommended that Player1 play MachineA, but he or
 
 You can also use this command if the machine was marked as temporarily out of order with the machinebusy command, and is now back in business."""
         try:
-            self.game.set_machine_ready(True)
+            self.game.set_machine_ready(s, True)
         except GameError as e:
             print('Cannot mark machine as ready: {}'.format(e))
+        else:
+            print('Machine {} has been marked as ready'.format(s))
     
     def do_machinebusy(self, s):
         """Marks a machine as busy.
@@ -226,13 +252,22 @@ For instance if, the algorithm recommended that Player1 play MachineA, but he or
 
 You can also use this command if the machine is temporarily out of order."""
         try:
-            self.game.set_machine_ready(False)
+            self.game.set_machine_ready(s, False)
         except GameError as e:
             print('Cannot mark machine as busy: {}'.format(e))
+        else:
+            print('Machine {} has been marked as busy'.format(s))
+    
+    def do_exit(self, s):
+        """Exits the program."""
+        return self._get_confirmation('Are you sure you want to exit?')
     
     def _print_assignments(self, assignments):
         for idx, (machine, player) in enumerate(assignments):
             print('{}. {} should now play {}'.format(idx+1, player.name, machine.name))
+    
+    def _get_confirmation(self, msg):
+        return strtobool(input('{} (y/n): '.format(msg)))
 
 def run_cli():
     PinAssignCmd().cmdloop()

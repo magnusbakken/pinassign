@@ -114,6 +114,10 @@ class Game:
         self._scores = []
         self._is_running = False
     
+    def assign(self):
+        self._fail_if_not_running()
+        return self._assign_all()
+    
     def set_machine_ready(self, machine_name, ready):
         self._fail_if_not_running()
         if not machine_name:
