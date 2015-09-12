@@ -35,24 +35,28 @@ The game is still set up with the same machines and players as before, but no sc
 
 You may now add or remove machines. You will have to use the start command again to start assigning players to machines."""
 
+
 class PinAssignCmd(cmd.Cmd):
+
     def __init__(self):
         super().__init__()
         self.prompt = 'Command (? for help): '
         self.intro = INTRO
         self.game = Game()
-    
+
     def do_machines(self, s):
         """Display a list of machines. This command may be used at any time."""
         machines = self.game.machines
         if not machines:
-            print('No machines have been added. Use the addmachine command to add machines.')
+            print(
+                'No machines have been added. Use the addmachine command to add machines.')
         else:
             print('Machines:')
             sorted_machines = sorted(machines, key=lambda m: m.name)
-            table = [['Name', 'Ready', 'Expected Time']] + [[m.name, m.ready, m.expected_time] for m in sorted_machines]
+            table = [['Name', 'Ready', 'Expected Time']] + \
+                [[m.name, m.ready, m.expected_time] for m in sorted_machines]
             print(tabulate.tabulate(table))
-    
+
     def do_players(self, s):
         """Display a list of players. This command may be used at any time."""
         players = self.game.players
@@ -61,9 +65,11 @@ class PinAssignCmd(cmd.Cmd):
         else:
             print('Players:')
             sorted_players = sorted(players, key=lambda p: p.name)
-            table = [['Name', 'Ready', 'Expected Time Spent']] + [[p.name, p.ready, p.expected_time_spent] for p in sorted_players]
+            table = [['Name', 'Ready', 'Expected Time Spent']] + \
+                [[p.name, p.ready, p.expected_time_spent]
+                    for p in sorted_players]
             print(tabulate.tabulate(table))
-    
+
     def do_scores(self, s):
         """Display a list of scores.
 
@@ -73,10 +79,12 @@ This command may be used at any time, but will never give any results if the gam
             print('No scores have been registered. Use the addscore command to add a score (after starting the game).')
         else:
             print('Scores:')
-            sorted_scores = sorted(scores, key=lambda s: (s.machine.name, s.player.name))
-            table = [['Machine', 'Player']] + [[s.machine.name, s.player.name] for s in sorted_scores]
+            sorted_scores = sorted(
+                scores, key=lambda s: (s.machine.name, s.player.name))
+            table = [['Machine', 'Player']] + \
+                [[s.machine.name, s.player.name] for s in sorted_scores]
             print(tabulate.tabulate(table))
-    
+
     def do_addmachine(self, s):
         """Adds a machine to the game. Syntax: addmachine MACHINENAME EXPECTEDTIME.
 
@@ -91,9 +99,10 @@ Machines may not be added after the game has been started with the start command
             return
         name = s[:last_space_idx]
         try:
-            expected_time = int(s[last_space_idx+1:])
+            expected_time = int(s[last_space_idx + 1:])
         except ValueError:
-            print('Invalid expected time: {} (must be integer)'.format(s[last_space_idx+1:]))
+            value = s[last_space_idx + 1:]
+            print('Invalid expected time: {} (must be integer)'.format(value))
             return
         try:
             self.game.add_machine(name, expected_time)
@@ -102,8 +111,9 @@ Machines may not be added after the game has been started with the start command
         except GameError as e:
             print('Cannot add machine: {}'.format(e))
         else:
-            print('Machine {} added with expected time {}'.format(name, expected_time))
-    
+            print('Machine {} added with expected time {}'.format(
+                name, expected_time))
+
     def do_addplayer(self, s):
         """Adds a player to the game. Syntax: addplayer PLAYERNAME.
 
@@ -118,7 +128,7 @@ Each player name must be unique."""
             print('Cannot add player: {}'.format(e))
         else:
             print('Player {} added'.format(s))
-    
+
     def do_removemachine(self, s):
         """Removes a machine from the game. Syntax: removemachine MACHINENAME.
 
@@ -133,14 +143,15 @@ Machines may not be removed after the game has been started with the start comma
             print('Cannot remove machine: {}'.format(e))
         else:
             print('Machine {} removed'.format(s))
-    
+
     def do_removeplayer(self, s):
         """Removes a player from the game. Syntax: removeplayer PLAYERNAME.
 
 The PLAYERNAME must match a player that was previously added.
 
 Players may be removed while the game is ongoing, but if the removed player was previously assigned to a machine you will have to fix the Ready state of that machine with the machineready command."""
-        if self.game.is_running and not self._get_confirmation('The game has started. Are you sure you want to remove a player?'):
+        if self.game.is_running and not self._get_confirmation(
+                'The game has started. Are you sure you want to remove a player?'):
             return
         try:
             self.game.remove_player(s)
@@ -150,7 +161,7 @@ Players may be removed while the game is ongoing, but if the removed player was 
             print('Cannot remove player: {}'.format(e))
         else:
             print('Player {} removed'.format(s))
-    
+
     def do_addscore(self, s):
         """Registers a score. Syntax: addscore PLAYERNAME MACHINENAME.
 
@@ -176,18 +187,20 @@ If a player has not played the recommended machine, you may need to manually fix
             print(e)
             print('Use the scores command to see a list of scores')
         else:
-            print('Score for player {} added for game {}'.format(player_name, machine_name))
+            print('Score for player {} added for game {}'.format(
+                player_name, machine_name))
             self._print_assignments(new_assignments)
             if self.game.is_finished():
                 print(GAME_FINISHED)
-    
+
     def do_removescore(self, s):
         """Removes a score for a player/machine. Syntax: removescore PLAYERNAME MACHINENAME.
 
 The PLAYERNAME must match a player that has been added, the MACHINENAME must match a machine that has been added, and the player must have been registered as having played that machine.
 
 This will not set the player or the machine to be ready if they're currently busy."""
-        if self.game.is_running and not self._get_confirmation('Are you sure you want to remove a score?'):
+        if self.game.is_running and not self._get_confirmation(
+                'Are you sure you want to remove a score?'):
             return
         player_name, machine_name = self._parse_player_and_machine(s)
         if not player_name or not machine_name:
@@ -201,8 +214,9 @@ This will not set the player or the machine to be ready if they're currently bus
         except GameError as e:
             print('Cannot remove score: {}'.format(e))
         else:
-            print('Score for player {} on machine {} removed'.format(player_name, machine_name))
-    
+            print('Score for player {} on machine {} removed'.format(
+                player_name, machine_name))
+
     def do_start(self, s):
         """Starts the game. This is necessary for scores to be added, and for the algorithm to start running.
 
@@ -218,7 +232,7 @@ To reset a running game completely, use the reset command. This will remove all 
         else:
             print(GAME_STARTED)
             self._print_assignments(initial_assignments)
-    
+
     def do_reset(self, s):
         """Resets a game completely.
 
@@ -228,14 +242,15 @@ To reset only the scores, use the resetscores command instead."""
         if self._get_confirmation('Are you sure you want to reset the game?'):
             self.game = Game()
             print(GAME_RESET)
-    
+
     def do_resetscores(self, s):
         """Resets the scores of a running game.
 
 This will remove all registered scores for the game, but machines and players will be kept.
 
 After running this command, machines may be added. The start command must be used again before new scores may be added."""
-        if self._get_confirmation('Are you sure you want to reset the scores?'):
+        if self._get_confirmation(
+                'Are you sure you want to reset the scores?'):
             try:
                 self.game.reset_scores()
             except GameError as e:
@@ -273,7 +288,7 @@ You can also use this command if the player was marked as temporarily unable to 
             print('Cannot mark player as ready: {}'.format(e))
         else:
             print('Player {} has been marked as ready'.format(s))
-    
+
     def do_playerbusy(self, s):
         """Marks a player as busy.
 
@@ -288,7 +303,7 @@ You can also use this command if the player is temporarily unable to play."""
             print('Cannot mark player as busy: {}'.format(e))
         else:
             print('Player {} has been marked as busy'.format(s))
-    
+
     def do_machineready(self, s):
         """Marks a machine as ready.
 
@@ -303,7 +318,7 @@ You can also use this command if the machine was marked as temporarily out of or
             print('Cannot mark machine as ready: {}'.format(e))
         else:
             print('Machine {} has been marked as ready'.format(s))
-    
+
     def do_machinebusy(self, s):
         """Marks a machine as busy.
 
@@ -318,29 +333,31 @@ You can also use this command if the machine is temporarily out of order."""
             print('Cannot mark machine as busy: {}'.format(e))
         else:
             print('Machine {} has been marked as busy'.format(s))
-    
+
     def do_exit(self, s):
         """Exits the program."""
         return self._get_confirmation('Are you sure you want to exit?')
-    
+
     def do_quit(self, s):
         """Exits the program."""
         return self.do_exit(s)
-    
+
     def _print_assignments(self, assignments):
         for idx, (machine, player) in enumerate(assignments):
-            print('{}. {} should now play {}'.format(idx+1, player.name, machine.name))
-    
+            print('{}. {} should now play {}'.format(
+                idx + 1, player.name, machine.name))
+
     def _get_confirmation(self, msg):
         return strtobool(input('{} (y/n): '.format(msg)))
-    
+
     def _parse_player_and_machine(self, s):
         first_space_idx = s.find(' ')
         if first_space_idx == -1:
             return (None, None)
         player_name = s[:first_space_idx]
-        machine_name = s[first_space_idx+1:]
+        machine_name = s[first_space_idx + 1:]
         return (player_name, machine_name)
+
 
 def run_cli():
     PinAssignCmd().cmdloop()
