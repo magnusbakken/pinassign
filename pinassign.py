@@ -11,6 +11,9 @@ class Machine:
     
     def __str__(self):
         return 'Machine {}'.format(self.name)
+    
+    def __repr__(self):
+        return 'Machine({}, {})'.format(self.name, self.expected_time)
 
 class Player:
     def __init__(self, name):
@@ -23,6 +26,9 @@ class Player:
     
     def __str__(self):
         return 'Player {}'.format(self.name)
+    
+    def __repr__(self):
+        return 'Player({})'.format(self.name)
 
 class Score:
     def __init__(self, machine, player):
@@ -34,6 +40,9 @@ class Score:
     
     def __str__(self):
         return '{} played {}'.format(self.player, self.machine)
+    
+    def __repr__(self):
+        return 'Score({}, {})'.format(repr(self.machine), repr(self.player))
 
 def pick_player(players, r):
     l = list(players)

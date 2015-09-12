@@ -15,6 +15,7 @@ To add a player, type "addplayer NAME".
 Player names must not contain spaces (use tags).
 
 Once you've added all machines and at least one player, type "start".
+After the game has been started you can no longer add machines.
 """
 
 GAME_STARTED = """The game has started!
@@ -79,6 +80,10 @@ class Game:
     def players(self):
         return self._machines
     
+    @property
+    def scores(self):
+        return self._scores
+    
     def add_machine(self, name, expected_time):
         self._fail_if_running()
         if not name:
@@ -138,6 +143,7 @@ class Game:
     def reset_scores(self):
         self._fail_if_not_running()
         self._scores = []
+        self._is_running = False
     
     def _fail_if_running(self):
         if self._is_running:
@@ -165,24 +171,44 @@ class PinAssignCmd(cmd.Cmd):
         self.game = Game()
     
     def do_machines(self, s):
+        """Display a list of machines. This command may be used at any time."""
         machines = self.game.machines
         if not machines:
-            print('No machines have been added')
+            print('No machines have been added. Use the addmachine command to add machines.')
         else:
             print('Machines:')
             for machine in sorted(machines, key=lambda m: m.name):
                 print('- {} (expected time {})'.format(machine.name, machine.expected_time))
     
     def do_players(self, s):
+        """Display a list of players. This command may be used at any time."""
         players = self.game.players
         if not players:
-            print('No players have been added')
+            print('No players have been added. Use the addplayer command to add players.')
         else:
             print('Players:')
             for player in sorted(players, key=lambda p: p.name):
                 print('- {}'.format(player.name))
     
+    def do_scores(self, s):
+        """Display a list of scores.
+
+This command may be used at any time, but will never give any results if the game hasn't been started yet."""
+        scores = self.game.scores
+        if not scores:
+            print('No scores have been registered. Use the register command to add a score (after starting the game).')
+        else:
+            for score in sorted(scores, key=lambda s: (s.machine.name, s.player.name)):
+                print('- {}: {}'.format(score.machine.name, score.player.name))
+    
     def do_addmachine(self, s):
+        """Adds a machine to the game. Syntax: addmachine MACHINENAME EXPECTEDTIME
+
+The MACHINENAME may contain any symbols. The EXPECTEDTIME must be an integer greater than zero.
+
+Each machine name must be unique.
+
+Machines may not be added after the game has been started with the start command."""
         last_space_idx = s.rfind(' ')
         if last_space_idx == -1:
             print('Invalid addmachine syntax. Example: "addmachine Medieval Madness 5"')
@@ -202,6 +228,11 @@ class PinAssignCmd(cmd.Cmd):
             print('Cannot add machine: {}'.format(e))
     
     def do_addplayer(self, s):
+        """Adds a player to the game. Syntax: addplayer PLAYERNAME.
+
+The player name may not contain spaces. Use player tags or first names.
+
+Each player name must be unique."""
         try:
             self.game.add_player(s)
             print('Player {} added'.format(s))
@@ -211,6 +242,13 @@ class PinAssignCmd(cmd.Cmd):
             print('Cannot add player: {}'.format(e))
     
     def do_start(self, s):
+        """Starts the game. This is necessary for scores to be added, and for the algorithm to start running.
+
+At least one machine and at least one player must be added before starting the game.
+
+Once this command has been run, machines may no longer be added. Players can still be added, however.
+
+To reset a running game completely, use the reset command. This will remove all machines and players. To reset the scores only, use the resetscores command."""
         try:
             initial_assignments = self.game.start()
         except GameError as e:
@@ -220,6 +258,13 @@ class PinAssignCmd(cmd.Cmd):
             self._print_assignments(initial_assignments)
     
     def do_register(self, s):
+        """Registers a score. Syntax: register PLAYERNAME MACHINENAME.
+
+The player must not already have a registered score on the machine.
+
+There is no verification that the player/machine combination matches the one recommended by the algorithm, nor that the player and the machine are currently marked as unready.
+
+If a player has not played the recommended machine, you may need to manually fix the ready state of the player and/or machine with the commands playerready, playerbusy, machineready, machinebusy."""
         first_space_idx = s.find(' ')
         if first_space_idx == -1:
             print('Invalid register syntax. Example: register MGB Firepower')
@@ -245,10 +290,20 @@ class PinAssignCmd(cmd.Cmd):
                 print(GAME_FINISHED)
     
     def do_reset(self, s):
+        """Resets a game completely.
+
+This will remove all machines, players and scores from the running game.
+
+To reset only the scores, use the resetscores command instead."""
         print(GAME_RESET)
         self.game = Game()
     
     def do_resetscores(self, s):
+        """Resets the scores of a running game.
+
+This will remove all registered scores for the game, but machines and players will be kept.
+
+After running this command, machines may be added. The start command must be used again before new scores may be added."""
         print(SCORES_RESET)
         try:
             self.game.reset_scores()
@@ -257,7 +312,7 @@ class PinAssignCmd(cmd.Cmd):
     
     def _print_assignments(self, assignments):
         for idx, (machine, player) in enumerate(assignments):
-            print('{}. {} plays {}'.format(idx+1, player.name, machine.name))
+            print('{}. {} should now play {}'.format(idx+1, player.name, machine.name))
 
 def run_cli():
     PinAssignCmd().cmdloop()
