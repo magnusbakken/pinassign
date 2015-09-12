@@ -100,7 +100,7 @@ class Game:
         self._players.remove(player)
         del self._player_dict[name]
     
-    def register_score(self, machine_name, player_name):
+    def add_score(self, machine_name, player_name):
         self._fail_if_not_running()
         if not machine_name:
             raise InvalidMachineError('No machine name given')
@@ -116,7 +116,7 @@ class Game:
             return pinassign.player_finished_machine(
                 machine, player, self._machines, self._players, self._scores, self.r)
         except ValueError as e:
-            msg = 'Score for {} on {} already registered'.format(player_name, machine_name)
+            msg = 'Score for {} on {} already exists'.format(player_name, machine_name)
             raise DuplicateScoreError(msg) from e
     
     def remove_score(self, machine_name, player_name):

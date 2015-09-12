@@ -17,7 +17,7 @@ Player names must not contain spaces (use tags).
 
 Once you've added all machines and at least one player, type "start". After the game has been started you can no longer add or remove machines.
 
-Then use register PLAYERNAME MACHINENAME whenever a player has finished a machine.
+Then use addscore PLAYERNAME MACHINENAME whenever a player has finished a machine.
 """
 
 GAME_STARTED = """The game has started!
@@ -71,7 +71,7 @@ class PinAssignCmd(cmd.Cmd):
 This command may be used at any time, but will never give any results if the game hasn't been started yet."""
         scores = self.game.scores
         if not scores:
-            print('No scores have been registered. Use the register command to add a score (after starting the game).')
+            print('No scores have been registered. Use the addscore command to add a score (after starting the game).')
         else:
             print('Scores:')
             sorted_scores = sorted(scores, key=lambda s: (s.machine.name, s.player.name))
@@ -152,30 +152,8 @@ Players may be removed while the game is ongoing, but if the removed player was 
         else:
             print('Player {} removed'.format(s))
     
-    def do_removescore(self, s):
-        """Removes a score for a player/machine. Syntax: removescore PLAYERNAME MACHINENAME.
-
-The PLAYERNAME must match a player that has been added, the MACHINENAME must match a machine that has been added, and the player must have been registered as having played that machine.
-
-This will not set the player or the machine to be ready if they're currently busy."""
-        if self.game.is_running and not self._get_confirmation('Are you sure you want to remove a score?'):
-            return
-        player_name, machine_name = self._parse_player_and_machine(s)
-        if not player_name or not machine_name:
-            print('Invalid register syntax. Example: register MGB Firepower')
-        try:
-            self.game.remove_score(machine_name, player_name)
-        except MachineError as e:
-            print('Invalid machine: {}'.format(e))
-        except PlayerError as e:
-            print('Invalid player: {}'.format(e))
-        except GameError as e:
-            print('Cannot remove score: {}'.format(e))
-        else:
-            print('Score for player {} on machine {} removed'.format(player_name, machine_name))
-    
-    def do_register(self, s):
-        """Registers a score. Syntax: register PLAYERNAME MACHINENAME.
+    def do_addscore(self, s):
+        """Registers a score. Syntax: addscore PLAYERNAME MACHINENAME.
 
 The player must not already have a registered score on the machine.
 
@@ -184,11 +162,11 @@ There is no verification that the player/machine combination matches the one rec
 If a player has not played the recommended machine, you may need to manually fix the ready state of the player and/or machine with the commands playerready, playerbusy, machineready, machinebusy."""
         player_name, machine_name = self._parse_player_and_machine(s)
         if not player_name or not machine_name:
-            print('Invalid register syntax. Example: register MGB Firepower')
+            print('Invalid addscore syntax. Example: addscore MGB Firepower')
         try:
-            new_assignments = self.game.register_score(machine_name, player_name)
+            new_assignments = self.game.add_score(machine_name, player_name)
         except (GameError, InvalidMachineError, InvalidPlayerError) as e:
-            print('Cannot register score: {}'.format(e))
+            print('Cannot add score: {}'.format(e))
         except UnknownMachineError as e:
             print(e)
             print('Use the machines command to see a list of machines')
@@ -199,10 +177,32 @@ If a player has not played the recommended machine, you may need to manually fix
             print(e)
             print('Use the scores command to see a list of scores')
         else:
-            print('Player {} registered on game {}'.format(player_name, machine_name))
+            print('Score for player {} added for game {}'.format(player_name, machine_name))
             self._print_assignments(new_assignments)
             if self.game.is_finished():
                 print(GAME_FINISHED)
+    
+    def do_removescore(self, s):
+        """Removes a score for a player/machine. Syntax: removescore PLAYERNAME MACHINENAME.
+
+The PLAYERNAME must match a player that has been added, the MACHINENAME must match a machine that has been added, and the player must have been registered as having played that machine.
+
+This will not set the player or the machine to be ready if they're currently busy."""
+        if self.game.is_running and not self._get_confirmation('Are you sure you want to remove a score?'):
+            return
+        player_name, machine_name = self._parse_player_and_machine(s)
+        if not player_name or not machine_name:
+            print('Invalid removescore syntax. Example: removescore MGB Firepower')
+        try:
+            self.game.remove_score(machine_name, player_name)
+        except MachineError as e:
+            print('Invalid machine: {}'.format(e))
+        except PlayerError as e:
+            print('Invalid player: {}'.format(e))
+        except GameError as e:
+            print('Cannot remove score: {}'.format(e))
+        else:
+            print('Score for player {} on machine {} removed'.format(player_name, machine_name))
     
     def do_start(self, s):
         """Starts the game. This is necessary for scores to be added, and for the algorithm to start running.
@@ -323,6 +323,10 @@ You can also use this command if the machine is temporarily out of order."""
     def do_exit(self, s):
         """Exits the program."""
         return self._get_confirmation('Are you sure you want to exit?')
+    
+    def do_quit(self, s):
+        """Exits the program."""
+        return self.do_exit(s)
     
     def _print_assignments(self, assignments):
         for idx, (machine, player) in enumerate(assignments):

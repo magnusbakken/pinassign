@@ -35,8 +35,8 @@ def simulate(machines=default_machines(), players=default_players(), r=random.Ra
             for ((m, p), t) in current_pairings:
                 print('  - {} is playing {} (started at {})'.format(p, m, t))
         time_taken += 1
-        next_pairings = [((m, p), t) for (m, p), t in current_pairings if m.expectedTime > time_taken - t]
-        for (m, p), t in (((m, p), t) for (m, p), t in current_pairings if m.expectedTime <= time_taken - t):
+        next_pairings = [((m, p), t) for (m, p), t in current_pairings if m.expected_time > time_taken - t]
+        for (m, p), t in (((m, p), t) for (m, p), t in current_pairings if m.expected_time <= time_taken - t):
             print('{} finished {} at {} (started at {})'.format(p, m, time_taken, t))
             new_pairings = player_finished_machine(m, p, machines, players, scores, r)
             for new_m, new_p in new_pairings:
