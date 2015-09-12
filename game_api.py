@@ -48,7 +48,7 @@ class Game:
     
     @property
     def players(self):
-        return self._machines
+        return self._players
     
     @property
     def scores(self):

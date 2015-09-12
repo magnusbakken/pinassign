@@ -1,6 +1,8 @@
 import cmd
 from distutils.util import strtobool
 
+import tabulate
+
 from game_api import *
 
 INTRO = """Welcome to the PinAssign command line interface.
@@ -46,8 +48,9 @@ class PinAssignCmd(cmd.Cmd):
             print('No machines have been added. Use the addmachine command to add machines.')
         else:
             print('Machines:')
-            for machine in sorted(machines, key=lambda m: m.name):
-                print('- {} (expected time {})'.format(machine.name, machine.expected_time))
+            sorted_machines = sorted(machines, key=lambda m: m.name)
+            table = [['Name', 'Ready', 'Expected Time']] + [[m.name, m.ready, m.expected_time] for m in sorted_machines]
+            print(tabulate.tabulate(table))
     
     def do_players(self, s):
         """Display a list of players. This command may be used at any time."""
@@ -56,8 +59,9 @@ class PinAssignCmd(cmd.Cmd):
             print('No players have been added. Use the addplayer command to add players.')
         else:
             print('Players:')
-            for player in sorted(players, key=lambda p: p.name):
-                print('- {}'.format(player.name))
+            sorted_players = sorted(players, key=lambda p: p.name)
+            table = [['Name', 'Ready', 'Expected Time Spent']] + [[p.name, p.ready, p.expected_time_spent] for p in sorted_players]
+            print(tabulate.tabulate(table))
     
     def do_scores(self, s):
         """Display a list of scores.
@@ -67,8 +71,10 @@ This command may be used at any time, but will never give any results if the gam
         if not scores:
             print('No scores have been registered. Use the register command to add a score (after starting the game).')
         else:
-            for score in sorted(scores, key=lambda s: (s.machine.name, s.player.name)):
-                print('- {}: {}'.format(score.machine.name, score.player.name))
+            print('Scores:')
+            sorted_scores = sorted(scores, key=lambda s: (s.machine.name, s.player.name))
+            table = [['Machine', 'Player']] + [[s.machine.name, s.player.name] for s in sorted_scores]
+            print(tabulate.tabulate(table))
     
     def do_addmachine(self, s):
         """Adds a machine to the game. Syntax: addmachine MACHINENAME EXPECTEDTIME
