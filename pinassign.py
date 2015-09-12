@@ -1,9 +1,9 @@
 import itertools as it
 
 class Machine:
-    def __init__(self, name, expectedTime):
+    def __init__(self, name, expected_time):
         self.name = name
-        self.expectedTime = expectedTime
+        self.expected_time = expected_time
         self.ready = True
     
     def __eq__(self, other):
@@ -15,7 +15,7 @@ class Machine:
 class Player:
     def __init__(self, name):
         self.name = name
-        self.expectedTimeSpent = 0
+        self.expected_time_spent = 0
         self.ready = True
     
     def __eq__(self, other):
@@ -49,10 +49,10 @@ def is_everyone_finished(machines, players, scores):
 
 def filter_available_players(machine, players, scores):
     all_available = (p for p in players if p.ready and not has_played_machine(machine, p, scores))
-    q = sorted(all_available, key=lambda p: p.expectedTimeSpent)
+    q = sorted(all_available, key=lambda p: p.expected_time_spent)
     if not q:
         return ()
-    return it.takewhile(lambda p: p.expectedTimeSpent == q[0].expectedTimeSpent, q)
+    return it.takewhile(lambda p: p.expected_time_spent == q[0].expected_time_spent, q)
 
 def filter_available_machines(machines):
     return (m for m in machines if m.ready)
@@ -60,7 +60,7 @@ def filter_available_machines(machines):
 def register_score(machine, player, scores):
     machine.ready = True
     player.ready = True
-    player.expectedTimeSpent += machine.expectedTime
+    player.expected_time_spent += machine.expected_time
     scores.append(Score(machine, player))
 
 def assign_player(machine, player):
