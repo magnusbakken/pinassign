@@ -8,7 +8,6 @@ from game_api import *
 INTRO = """Welcome to the PinAssign command line interface.
 
 Before you can start assigning, you need to add machines and players.
-Machines and players can also be added using text files passed as input to this script.
 
 To add a machine, type "addmachine NAME EXPECTEDTIME".
 To add a player, type "addplayer NAME".
