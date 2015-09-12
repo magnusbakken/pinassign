@@ -54,6 +54,10 @@ class Game:
     def scores(self):
         return self._scores
     
+    @property
+    def is_running(self):
+        return self._is_running
+    
     def add_machine(self, name, expected_time):
         self._fail_if_running()
         if not name:
@@ -66,6 +70,16 @@ class Game:
         self._machines.append(machine)
         self._machine_dict[name] = machine
     
+    def remove_machine(self, name):
+        self._fail_if_running()
+        if not name:
+            raise InvalidMachineError('The machine must have a name')
+        machine = self._get_machine(name)
+        if not machine:
+            raise UnknownMachineError('Machine {} not recognized'.format(name))
+        self._machines.remove(machine)
+        del self._machine_dict[name]
+    
     def add_player(self, name):
         if not name:
             raise InvalidPlayerError('The player must have a name')
@@ -77,14 +91,14 @@ class Game:
         self._players.append(player)
         self._player_dict[name] = player
     
-    def start(self):
-        self._fail_if_running()
-        if not self._machines:
-            raise GameError('There must be at least one machine')
-        elif not self._players:
-            raise GameError('There must be at least one player')
-        self._is_running = True
-        return self._assign_all()
+    def remove_player(self, name):
+        if not name:
+            raise InvalidPlayerError('The player must have a name')
+        player = self._get_player(name)
+        if not player:
+            raise UnknownPlayerError('Player {} not recognized'.format(name))
+        self._players.remove(player)
+        del self._player_dict[name]
     
     def register_score(self, machine_name, player_name):
         self._fail_if_not_running()
@@ -104,6 +118,30 @@ class Game:
         except ValueError as e:
             msg = 'Score for {} on {} already registered'.format(player_name, machine_name)
             raise DuplicateScoreError(msg) from e
+    
+    def remove_score(self, machine_name, player_name):
+        self._fail_if_not_running()
+        if not machine_name:
+            raise InvalidMachineError('No machine name given')
+        elif not player_name:
+            raise InvalidPlayerError('No player name given')
+        machine = self._get_machine(machine_name)
+        if not machine:
+            raise UnknownMachineError('Machine {} not recognized'.format(machine_name))
+        player = self._get_player(player_name)
+        if not player:
+            raise UnknownPlayerError('Player {} not recognized'.format(player_name))
+        score = pinassign.Score(machine, player)
+        self._scores.remove(score)
+    
+    def start(self):
+        self._fail_if_running()
+        if not self._machines:
+            raise GameError('There must be at least one machine')
+        elif not self._players:
+            raise GameError('There must be at least one player')
+        self._is_running = True
+        return self._assign_all()
     
     def is_finished(self):
         self._fail_if_not_running()

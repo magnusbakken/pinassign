@@ -15,7 +15,7 @@ To add a player, type "addplayer NAME".
 
 Player names must not contain spaces (use tags).
 
-Once you've added all machines and at least one player, type "start". After the game has been started you can no longer add machines.
+Once you've added all machines and at least one player, type "start". After the game has been started you can no longer add or remove machines.
 
 Then use register PLAYERNAME MACHINENAME whenever a player has finished a machine.
 """
@@ -32,7 +32,9 @@ GAME_RESET = """The game has been reset. New machines and players must be added.
 
 SCORES_RESET = """The game scores have been reset.
 
-The game is still running with the same machines and players as before, but no scores are registered anymore."""
+The game is still set up with the same machines and players as before, but no scores are registered anymore.
+
+You may now add or remove machines. You will have to use the start command again to start assigning players to machines."""
 
 class PinAssignCmd(cmd.Cmd):
     def __init__(self):
@@ -77,7 +79,7 @@ This command may be used at any time, but will never give any results if the gam
             print(tabulate.tabulate(table))
     
     def do_addmachine(self, s):
-        """Adds a machine to the game. Syntax: addmachine MACHINENAME EXPECTEDTIME
+        """Adds a machine to the game. Syntax: addmachine MACHINENAME EXPECTEDTIME.
 
 The MACHINENAME may contain any symbols. The EXPECTEDTIME must be an integer greater than zero.
 
@@ -96,11 +98,12 @@ Machines may not be added after the game has been started with the start command
             return
         try:
             self.game.add_machine(name, expected_time)
-            print('Machine {} added with expected time {}'.format(name, expected_time))
         except MachineError as e:
             print('Invalid addmachine command: {}'.format(e))
         except GameError as e:
             print('Cannot add machine: {}'.format(e))
+        else:
+            print('Machine {} added with expected time {}'.format(name, expected_time))
     
     def do_addplayer(self, s):
         """Adds a player to the game. Syntax: addplayer PLAYERNAME.
@@ -110,11 +113,96 @@ The player name may not contain spaces. Use player tags or first names.
 Each player name must be unique."""
         try:
             self.game.add_player(s)
-            print('Player {} added'.format(s))
         except PlayerError as e:
             print('Invalid addplayer command: {}'.format(e))
         except GameError as e:
             print('Cannot add player: {}'.format(e))
+        else:
+            print('Player {} added'.format(s))
+    
+    def do_removemachine(self, s):
+        """Removes a machine from the game. Syntax: removemachine MACHINENAME.
+
+The MACHINENAME must match a machine that was previously added.
+
+Machines may not be removed after the game has been started with the start command."""
+        try:
+            self.game.remove_machine(s)
+        except MachineError as e:
+            print('Invalid removemachine command: {}'.format(e))
+        except GameError as e:
+            print('Cannot remove machine: {}'.format(e))
+        else:
+            print('Machine {} removed'.format(s))
+    
+    def do_removeplayer(self, s):
+        """Removes a player from the game. Syntax: removeplayer PLAYERNAME.
+
+The PLAYERNAME must match a player that was previously added.
+
+Players may be removed while the game is ongoing, but if the removed player was previously assigned to a machine you will have to fix the Ready state of that machine with the machineready command."""
+        if self.game.is_running and not self._get_confirmation('The game has started. Are you sure you want to remove a player?'):
+            return
+        try:
+            self.game.remove_player(s)
+        except PlayerError as e:
+            print('Invalid removeplayer command: {}'.format(e))
+        except GameError as e:
+            print('Cannot remove player: {}'.format(e))
+        else:
+            print('Player {} removed'.format(s))
+    
+    def do_removescore(self, s):
+        """Removes a score for a player/machine. Syntax: removescore PLAYERNAME MACHINENAME.
+
+The PLAYERNAME must match a player that has been added, the MACHINENAME must match a machine that has been added, and the player must have been registered as having played that machine.
+
+This will not set the player or the machine to be ready if they're currently busy."""
+        if self.game.is_running and not self._get_confirmation('Are you sure you want to remove a score?'):
+            return
+        player_name, machine_name = self._parse_player_and_machine(s)
+        if not player_name or not machine_name:
+            print('Invalid register syntax. Example: register MGB Firepower')
+        try:
+            self.game.remove_score(machine_name, player_name)
+        except MachineError as e:
+            print('Invalid machine: {}'.format(e))
+        except PlayerError as e:
+            print('Invalid player: {}'.format(e))
+        except GameError as e:
+            print('Cannot remove score: {}'.format(e))
+        else:
+            print('Score for player {} on machine {} removed'.format(player_name, machine_name))
+    
+    def do_register(self, s):
+        """Registers a score. Syntax: register PLAYERNAME MACHINENAME.
+
+The player must not already have a registered score on the machine.
+
+There is no verification that the player/machine combination matches the one recommended by the algorithm, nor that the player and the machine are currently marked as unready.
+
+If a player has not played the recommended machine, you may need to manually fix the ready state of the player and/or machine with the commands playerready, playerbusy, machineready, machinebusy."""
+        player_name, machine_name = self._parse_player_and_machine(s)
+        if not player_name or not machine_name:
+            print('Invalid register syntax. Example: register MGB Firepower')
+        try:
+            new_assignments = self.game.register_score(machine_name, player_name)
+        except (GameError, InvalidMachineError, InvalidPlayerError) as e:
+            print('Cannot register score: {}'.format(e))
+        except UnknownMachineError as e:
+            print(e)
+            print('Use the machines command to see a list of machines')
+        except UnknownPlayerError as e:
+            print(e)
+            print('Use the players command to see a list of players')
+        except DuplicateScoreError as e:
+            print(e)
+            print('Use the scores command to see a list of scores')
+        else:
+            print('Player {} registered on game {}'.format(player_name, machine_name))
+            self._print_assignments(new_assignments)
+            if self.game.is_finished():
+                print(GAME_FINISHED)
     
     def do_start(self, s):
         """Starts the game. This is necessary for scores to be added, and for the algorithm to start running.
@@ -131,38 +219,6 @@ To reset a running game completely, use the reset command. This will remove all 
         else:
             print(GAME_STARTED)
             self._print_assignments(initial_assignments)
-    
-    def do_register(self, s):
-        """Registers a score. Syntax: register PLAYERNAME MACHINENAME.
-
-The player must not already have a registered score on the machine.
-
-There is no verification that the player/machine combination matches the one recommended by the algorithm, nor that the player and the machine are currently marked as unready.
-
-If a player has not played the recommended machine, you may need to manually fix the ready state of the player and/or machine with the commands playerready, playerbusy, machineready, machinebusy."""
-        first_space_idx = s.find(' ')
-        if first_space_idx == -1:
-            print('Invalid register syntax. Example: register MGB Firepower')
-            return
-        player_name = s[:first_space_idx]
-        machine_name = s[first_space_idx+1:]
-        try:
-            new_assignments = self.game.register_score(machine_name, player_name)
-        except (GameError, InvalidMachineError, InvalidPlayerError) as e:
-            print('Cannot register score: {}'.format(e))
-        except UnknownMachineError as e:
-            print(e)
-            print('Use the machines command to see a list of machines')
-        except UnknownPlayerError as e:
-            print(e)
-            print('Use the players command to see a list of players')
-        except DuplicateScoreError as e:
-            print(e)
-            print('Use the scores command to see a list of scores')
-        else:
-            self._print_assignments(new_assignments)
-            if self.game.is_finished():
-                print(GAME_FINISHED)
     
     def do_reset(self, s):
         """Resets a game completely.
@@ -274,6 +330,14 @@ You can also use this command if the machine is temporarily out of order."""
     
     def _get_confirmation(self, msg):
         return strtobool(input('{} (y/n): '.format(msg)))
+    
+    def _parse_player_and_machine(self, s):
+        first_space_idx = s.find(' ')
+        if first_space_idx == -1:
+            return (None, None)
+        player_name = s[:first_space_idx]
+        machine_name = s[first_space_idx+1:]
+        return (player_name, machine_name)
 
 def run_cli():
     PinAssignCmd().cmdloop()
