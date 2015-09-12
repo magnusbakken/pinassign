@@ -1,6 +1,6 @@
 import random
 
-from pinassign import *
+from .pinassign import *
 
 def default_machines():
     return [
