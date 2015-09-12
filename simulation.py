@@ -1,3 +1,5 @@
+import random
+
 from pinassign import *
 
 def simulate(machines=default_machines(), players=default_players(), r=random.Random()):

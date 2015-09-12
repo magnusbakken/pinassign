@@ -1,5 +1,4 @@
 import itertools as it
-import random
 
 """
 5 players (1, 2, 3, 4, 5)
