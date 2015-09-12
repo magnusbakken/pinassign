@@ -2,6 +2,21 @@ import random
 
 from pinassign import *
 
+def default_machines():
+    return [
+        Machine('A', 5),
+        Machine('B', 10),
+    ]
+
+def default_players():
+    return [
+        Player('1'),
+        Player('2'),
+        Player('3'),
+        Player('4'),
+        Player('5'),
+    ]
+
 def simulate(machines=default_machines(), players=default_players(), r=random.Random()):
     scores = []
     current_pairings = []
