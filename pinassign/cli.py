@@ -3,7 +3,7 @@ from distutils.util import strtobool
 
 import tabulate
 
-from .game_api import *
+from .game import *
 
 INTRO = """Welcome to the PinAssign command line interface.
 

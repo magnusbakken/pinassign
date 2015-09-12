@@ -1,6 +1,6 @@
 import random
 
-import .pinassign
+import .core
 
 
 class GameError(Exception):
