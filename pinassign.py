@@ -58,10 +58,13 @@ def filter_available_machines(machines):
     return (m for m in machines if m.ready)
 
 def register_score(machine, player, scores):
+    score = Score(machine, player)
+    if score in scores:
+        raise ValueError('{} has already been registered on {}'.format(player, machine))
     machine.ready = True
     player.ready = True
     player.expected_time_spent += machine.expected_time
-    scores.append(Score(machine, player))
+    scores.append(score)
 
 def assign_player(machine, player):
     machine.ready = False
